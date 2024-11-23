@@ -34,23 +34,24 @@
 
 ## Tasks
 1. (server) Add /tool endpoint
-   aider
+   ```aider
    update server.ts:
-   create /tool endpoint.
+      create /tool endpoint.
 
-   reference tool_use.md doc to create tool_prompt(prompt: str) -> Tool.
+         reference tool_use.md doc to create tool_prompt(prompt: str) -> Tool.
 
-   use force_tool = gen_ui.build gen_ui tool with properties: {
-   "component_type": {
-   "type": "string",
-   "enum": ["text", "starRating", "colorPicker", "contactForm"],
-   "description": "The type of UI component to generate",
-   },
-   "textResponse": {
-   "type": "string",
-   "description": "Optional response text for text-based components",
-   }
-   }.
+         use force_tool = gen_ui.build gen_ui tool with properties: {
+            "component_type": {
+               "type": "string",
+               "enum": ["text", "starRating", "colorPicker", "contactForm"],
+               "description": "The type of UI component to generate",
+            },
+            "textResponse": {
+               "type": "string",
+               "description": "Optional response text for text-based components",
+               }
+         }.
+   ```
 
 2. (client) Call /tool endpoint
    aider
