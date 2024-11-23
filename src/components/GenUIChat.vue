@@ -3,7 +3,13 @@
     <div class="chat-messages" ref="messagesContainer">
       <div v-for="(message, index) in messages" :key="index" :class="['message', message.role]">
         <div class="message-content">
-          <div class="message-text">{{ message.content }}</div>
+          <component 
+            v-if="message.componentType"
+            :is="resolveComponent(message.componentType)"
+            v-bind="message.componentProps"
+            @handleSubmit="handleDynamicSubmit"
+          />
+          <div v-else class="message-text">{{ message.content }}</div>
           <div class="message-timestamp">{{ formatTimestamp(message.timestamp) }}</div>
           <div v-if="message.error" class="message-error">Error: {{ message.error }}</div>
         </div>
@@ -33,13 +39,43 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick, markRaw } from 'vue'
+import GenUIText from './GenUIText.vue'
+import GenUIStarRating from './GenUIStarRating.vue'
+import GenUIColorPicker from './GenUIColorPicker.vue'
+import GenUIContactForm from './GenUIContactForm.vue'
 
 interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
   timestamp: Date
   error?: string
+  id: string
+  componentType?: string
+  componentProps?: Record<string, any>
+  submitResponse?: Record<string, any>
+  createdAt: number
+}
+
+// Add component resolution function
+const resolveComponent = (type: string) => {
+  const components = {
+    text: markRaw(GenUIText),
+    starRating: markRaw(GenUIStarRating),
+    colorPicker: markRaw(GenUIColorPicker),
+    contactForm: markRaw(GenUIContactForm),
+    userMessage: markRaw(GenUIText),
+    textMessage: markRaw(GenUIText),
+    errorMessage: markRaw(GenUIText)
+  }
+  return components[type as keyof typeof components] || markRaw(GenUIText)
+}
+
+// Add submit handler
+const handleDynamicSubmit = (data: any) => {
+  console.log('Component submitted:', data)
+  // Handle the submission based on the component type
+  // You can add specific handling logic here
 }
 
 const messages = ref<ChatMessage[]>([])
@@ -48,6 +84,10 @@ const messagesContainer = ref<HTMLElement | null>(null)
 const isLoading = ref(false)
 const isTyping = ref(false)
 const sessionId = ref<string | null>(null)
+
+const generateId = () => {
+  return Date.now().toString(36) + Math.random().toString(36).substring(2)
+}
 
 const formatTimestamp = (date: Date): string => {
   return new Intl.DateTimeFormat('en-US', {
@@ -79,7 +119,11 @@ const sendMessage = async () => {
   messages.value.push({
     role: 'user',
     content: trimmedInput,
-    timestamp: new Date()
+    timestamp: new Date(),
+    id: generateId(),
+    createdAt: Date.now(),
+    componentType: 'userMessage',
+    componentProps: { text: trimmedInput }
   })
   userInput.value = ''
   await scrollToBottom()
@@ -111,8 +155,13 @@ const sendMessage = async () => {
     
     messages.value.push({
       role: 'assistant',
-      content: JSON.stringify(data, null, 2), // Pretty print the entire response object
-      timestamp: new Date()
+      content: JSON.stringify(data, null, 2),
+      timestamp: new Date(),
+      id: generateId(),
+      createdAt: Date.now(),
+      componentType: data.uiComponent?.type || 'textMessage',
+      componentProps: data.uiComponent || { text: data.response },
+      submitResponse: data
     })
   } catch (error) {
     console.error('Error:', error)
@@ -122,7 +171,14 @@ const sendMessage = async () => {
       role: 'assistant',
       content: 'Sorry, I encountered an error processing your request.',
       timestamp: new Date(),
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Unknown error',
+      id: generateId(),
+      createdAt: Date.now(),
+      componentType: 'errorMessage',
+      componentProps: { 
+        text: 'Sorry, I encountered an error processing your request.',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
     })
   } finally {
     isLoading.value = false
@@ -134,7 +190,11 @@ onMounted(() => {
   messages.value.push({
     role: 'assistant',
     content: 'Hello! How can I help you today?',
-    timestamp: new Date()
+    timestamp: new Date(),
+    id: generateId(),
+    createdAt: Date.now(),
+    componentType: 'textMessage',
+    componentProps: { text: 'Hello! How can I help you today?' }
   })
 })
 </script>

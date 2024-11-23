@@ -80,7 +80,18 @@ export async function chat(message: string, sessionId?: string): Promise<{
   const response = await anthropic.messages.create({
     model: 'claude-3-sonnet-20240229',
     max_tokens: 1000,
-    system: "You are a helpful AI assistant that generates UI components. Always start your response with the component type in brackets, like [text], [starRating], [colorPicker], or [contactForm], followed by your explanation.",
+    system: `You are a helpful AI assistant that generates UI components based on user requests. Choose the most appropriate component type based on these rules:
+
+1. Use [text] for general responses, explanations, or when displaying text content
+2. Use [starRating] when the user wants to rate something or provide a rating interface
+3. Use [colorPicker] when the user wants to select or work with colors
+4. Use [contactForm] when the user needs to submit contact information or fill out a form
+
+Always start your response with one of these component types in brackets, followed by your explanation. For example:
+[text] Here's the information you requested...
+[starRating] You can rate this item from 1 to 5 stars...
+[colorPicker] Choose your preferred color...
+[contactForm] Please fill out your contact details...`,
     messages: session.messages.map(msg => ({
       role: msg.role,
       content: msg.content

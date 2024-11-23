@@ -61,13 +61,14 @@
       use entire object as response.
    ```
 2.2. (client) Update messages type to store response from /tool endpoint and setup for load/save
-   aider
-   update GenUIChat.vue:
-   update Message: add {componentType: str, componentProps: Record, submitResponse: Record, createdAt: int, id: str}
-   when we add messages generate these.
+   ```aider
+      update GenUIChat.vue:
+      update Message: add {componentType: str, componentProps: Record, submitResponse: Record, createdAt: int, id: str}
+      when we add messages generate these.
+   ```
 
 3. (client) Create the UI components & dynamic component
-   aider
+   ```aider
    create src/components/GenUIText.vue:
    <GenUIText :textResponse="textResponse" @handleSubmit="handleDynamicSubmit" />
 
@@ -82,7 +83,7 @@
 
    update GenUIChat.vue:
    use dynamic component instead of raw text of response.
-
+```
 4. (server) Create SQLite database in server/app.db
    bash
    aloe1 bash "Create sqlite db in server/app.db. New table: messages {id: str, text?: str, isUser: bool, componentType?: str, componentProps?: json, submitResponse?: json, createdAt: int}"
