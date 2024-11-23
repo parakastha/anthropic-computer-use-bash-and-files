@@ -160,7 +160,7 @@ const sendMessage = async () => {
       id: generateId(),
       createdAt: Date.now(),
       componentType: data.uiComponent?.type || 'textMessage',
-      componentProps: data.uiComponent || { text: data.response },
+      componentProps: { textResponse: data.uiComponent?.text || data.response },
       submitResponse: data
     })
   } catch (error) {
@@ -194,7 +194,7 @@ onMounted(() => {
     id: generateId(),
     createdAt: Date.now(),
     componentType: 'textMessage',
-    componentProps: { text: 'Hello! How can I help you today?' }
+    componentProps: { textResponse: 'Hello! How can I help you today?' }
   })
 })
 </script>
