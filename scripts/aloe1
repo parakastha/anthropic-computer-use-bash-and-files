@@ -1,99 +1,56 @@
 #!/bin/bash
 
-# Aloe1 Documentation Collection Agent
-# This script helps collect and process documentation using AI
+# Get the directory where this script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." &> /dev/null && pwd )"
+
+# Change to the project root directory
+cd "$PROJECT_ROOT" || exit 1
 
 # Load environment variables from .env file
 set -a
 [ -f .env ] && . .env
 set +a
 
-# URL mapping function
-get_url() {
-    local query="$1"
-    case "$query" in
-        "{tool use docs}")
-            echo "https://docs.anthropic.com/en/docs/build-with-claude/tool-use"
-            ;;
-        "{dynamic component docs}")
-            echo "https://docs.anthropic.com/en/docs/build-with-claude/dynamic-components"
-            ;;
-        *)
-            # If the input is already a URL, return it as is
-            if [[ "$query" == http* ]]; then
-                echo "$query"
-            else
-                echo "Error: Unknown documentation query: $query" >&2
-                exit 1
-            fi
-            ;;
-    esac
-}
-
-command="$1"
-shift
-
-case "$command" in
+# Process commands
+case "$1" in
     "collect")
-        query="$1"
-        # If output file is specified, use it, otherwise output to stdout
-        if [ -n "$2" ]; then
-            output_file="$2"
-        fi
-
-        # Get the URL for the query
-        url=$(get_url "$query")
-        
-        if [ $? -ne 0 ]; then
-            echo "$url" >&2
+        if [ -z "$2" ] || [ -z "$3" ]; then
+            echo "Usage: $0 collect <url> <output_file>" >&2
             exit 1
         fi
         
-        # Create directory if output file is specified and directory doesn't exist
-        if [ -n "$output_file" ]; then
-            mkdir -p "$(dirname "$output_file")"
-        fi
-
-        # Check if required Python packages are installed
-        if ! python3 -c "import bs4, requests" 2>/dev/null; then
-            echo "Installing required Python packages..." >&2
-            pip install beautifulsoup4 requests >/dev/null 2>&1
-        fi
+        url="$2"
+        output_file="$3"
         
-        # Get the directory where this script is located
-        SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+        # Create output directory if it doesn't exist
+        mkdir -p "$(dirname "$output_file")"
         
-        # Fetch and process content using Python script
-        if [ -n "$output_file" ]; then
-            python3 "$SCRIPT_DIR/extract_content.py" "$url" > "$output_file"
+        # Run the content extraction script
+        python3 "$SCRIPT_DIR/extract_content.py" "$url" > "$output_file"
+        if [ $? -eq 0 ]; then
             echo "Documentation collected from $url and saved to $output_file" >&2
         else
-            python3 "$SCRIPT_DIR/extract_content.py" "$url"
+            echo "Error collecting documentation from $url" >&2
+            exit 1
         fi
         ;;
         
     "editor")
-        input_file="$1"
-        if [[ -f "$input_file" ]]; then
-            # Run aider in documentation editing mode
-            aider \
-                --model claude-3-sonnet-20240229 \
-                --architect \
-                --no-auto-commits \
-                --show-diffs \
-                --message "$2" \
-                "$input_file"
-        else
-            echo "Error: Input file $input_file not found" >&2
+        if [ -z "$2" ]; then
+            echo "Usage: $0 editor \"<instruction>\"" >&2
             exit 1
         fi
+        
+        # Call the Python editor script with the instruction
+        python3 "$SCRIPT_DIR/doc_editor.py" "$2"
         ;;
         
     *)
-        echo "Usage: aloe1 <command> [args...]" >&2
+        echo "Usage: $0 <command> [args...]" >&2
         echo "Commands:" >&2
-        echo "  collect <query|url> [output_file]  - Collect documentation from query (e.g. {tool use docs}) or URL" >&2
-        echo "  editor <input_file> <instruction>  - Edit documentation using AI" >&2
+        echo "  collect <url> <output_file>  - Collect documentation from URL" >&2
+        echo "  editor <instruction>  - Edit documentation using AI" >&2
         exit 1
         ;;
 esac
