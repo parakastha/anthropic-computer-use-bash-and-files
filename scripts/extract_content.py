@@ -19,87 +19,100 @@ def process_code_block(element):
     language = ''
     for cls in classes:
         if isinstance(cls, str):  # Ensure cls is a string
-            if cls.startswith('language-'):
-                language = cls[9:]
-                break
-            elif cls.startswith('lang-'):
-                language = cls[5:]
-                break
-            elif cls in ['javascript', 'python', 'bash', 'json']:
-                language = cls
-                break
+            if 'language-' in cls:
+                language = cls.replace('language-', '')
+            elif 'lang-' in cls:
+                language = cls.replace('lang-', '')
     
+    # Get the code content
     code = element.get_text().strip()
     if code:
-        # Clean up the code
-        code = re.sub(r'\n\s*\n', '\n', code)  # Remove multiple blank lines
-        code = code.strip()
-        return f"```{language}\n{code}\n```"
-    return ''
+        if language:
+            return f'```{language}\n{code}\n```'
+        else:
+            return f'```\n{code}\n```'
+    return None
 
 def process_link(element):
     href = element.get('href', '')
     text = element.get_text().strip()
-    if href and text and not href.startswith(('/', '#')):  # Skip navigation links
-        return f"[{text}]({href})"
-    return text
+    if href and text:
+        return f'[{text}]({href})'
+    return text if text else None
 
 def is_heading(tag):
-    if not isinstance(tag, Tag) or not tag.name:
-        return False
-    match = re.match(r'h([1-6])', tag.name)
-    return bool(match)
+    return tag.name and tag.name.startswith('h') and len(tag.name) == 2 and tag.name[1].isdigit()
 
 def get_heading_level(tag):
-    match = re.match(r'h([1-6])', tag.name)
-    return int(match.group(1)) if match else 0
+    return int(tag.name[1])
 
 def should_skip_element(element):
-    if not isinstance(element, Tag):
-        return False
+    if not element:
+        return True
     
-    # Skip elements with certain classes
-    classes = element.get('class', [])
-    skip_classes = ['nav', 'menu', 'sidebar', 'toc', 'header', 'footer', 'navigation']
-    if any(cls in skip_classes for cls in classes):
+    # Skip empty elements
+    if isinstance(element, NavigableString) and not str(element).strip():
         return True
+    
+    # Skip hidden elements
+    if isinstance(element, Tag):
+        style = element.get('style', '')
+        if 'display: none' in style or 'visibility: hidden' in style:
+            return True
         
-    # Skip elements with certain roles
-    if element.get('role') in ['navigation', 'banner', 'complementary']:
-        return True
-        
-    # Skip elements with certain IDs
-    if element.get('id', '').lower() in ['nav', 'menu', 'sidebar', 'toc', 'header', 'footer']:
-        return True
-        
+        # Skip elements with certain classes or IDs
+        classes = element.get('class', [])
+        if any(c in classes for c in ['hidden', 'nav', 'menu', 'sidebar', 'footer']):
+            return True
+    
     return False
 
 def extract_content(url):
     try:
-        response = requests.get(url)
+        # Add headers to mimic a browser request
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36'
+        }
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()  # Raise an error for bad status codes
         soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Debug print
+        print(f"Page title: {soup.title.string if soup.title else 'No title'}", file=sys.stderr)
         
         # Remove unwanted elements
         for element in soup(['script', 'style', 'nav', 'header', 'footer', 'aside', 'button']):
             element.decompose()
         
-        # Find the main content area
+        # Find the main content area - try multiple selectors
         main = None
-        for selector in [
-            lambda s: s.find(class_=re.compile(r'(content|article|post|main)', re.I)),
-            lambda s: s.find('main'),
-            lambda s: s.find('article'),
-            lambda s: s.find(attrs={'role': 'main'}),
-            lambda s: s.find(id=re.compile(r'(content|article|post|main)', re.I)),
-            lambda s: s  # Fallback to entire body
-        ]:
-            main = selector(soup)
-            if main:
-                break
-            
-        # Remove navigation elements
-        for nav in main.find_all(class_=re.compile(r'nav|menu|sidebar|toc|header|footer', re.I)):
-            nav.decompose()
+        selectors = [
+            'main',
+            'article',
+            '.content',
+            '.article',
+            '.post',
+            '.main',
+            '#content',
+            '#main',
+            '.container',
+            '.doc-content',
+            '.documentation',
+            '[role="main"]'
+        ]
+        
+        for selector in selectors:
+            try:
+                main = soup.select_one(selector)
+                if main:
+                    print(f"Found content using selector: {selector}", file=sys.stderr)
+                    break
+            except Exception as e:
+                continue
+        
+        if not main:
+            print("Could not find main content area", file=sys.stderr)
+            return None
         
         # Process content recursively
         output = []
@@ -115,10 +128,10 @@ def extract_content(url):
             
             if isinstance(element, NavigableString):
                 text = str(element).strip()
-                if text and depth <= 1:  # Only include text from top-level elements
+                if text:
                     output.append(text)
                 return
-                
+            
             # Handle headings
             if is_heading(element):
                 level = get_heading_level(element)
@@ -182,6 +195,10 @@ def extract_content(url):
         
         # Clean up the output
         text = '\n'.join(output)
+        
+        # Debug print
+        print(f"Raw content length: {len(text)} characters", file=sys.stderr)
+        
         lines = []
         current_blank_lines = 0
         for line in text.split('\n'):
@@ -213,16 +230,26 @@ def extract_content(url):
         while filtered_lines and len(filtered_lines[-1]) < 20:  # Remove short footer lines
             filtered_lines.pop()
         
-        return '\n'.join(filtered_lines)
+        final_content = '\n'.join(filtered_lines)
+        
+        # Debug print
+        print(f"Final content length: {len(final_content)} characters", file=sys.stderr)
+        
+        return final_content if final_content.strip() else None
         
     except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        sys.exit(1)
+        print(f"Error: {str(e)}", file=sys.stderr)
+        return None
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
         print("Usage: extract_content.py <url>", file=sys.stderr)
         sys.exit(1)
     
-    content = extract_content(sys.argv[1])
-    print(content)
+    url = sys.argv[1]
+    content = extract_content(url)
+    if content:
+        print(content)  # Print the content to stdout
+    else:
+        print("Error: No content extracted", file=sys.stderr)
+        sys.exit(1)
