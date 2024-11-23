@@ -47,6 +47,7 @@ const userInput = ref('')
 const messagesContainer = ref<HTMLElement | null>(null)
 const isLoading = ref(false)
 const isTyping = ref(false)
+const sessionId = ref<string | null>(null)
 
 const formatTimestamp = (date: Date): string => {
   return new Intl.DateTimeFormat('en-US', {
@@ -91,7 +92,10 @@ const sendMessage = async () => {
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ message: trimmedInput })
+      body: JSON.stringify({ 
+        message: trimmedInput,
+        sessionId: sessionId.value  
+      })
     })
 
     if (!response.ok) {
@@ -100,6 +104,10 @@ const sendMessage = async () => {
 
     const data = await response.json()
     isTyping.value = false
+    
+    if (data.sessionId) {
+      sessionId.value = data.sessionId
+    }
     
     messages.value.push({
       role: 'assistant',
