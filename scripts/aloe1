@@ -46,11 +46,33 @@ case "$1" in
         python3 "$SCRIPT_DIR/doc_editor.py" "$2"
         ;;
         
+    "bash")
+        if [ -z "$2" ]; then
+            echo "Usage: $0 bash \"<command>\"" >&2
+            exit 1
+        fi
+
+        # Call the Python script to process the command using Anthropic API
+        python3 "$SCRIPT_DIR/bash_processor.py" "$2"
+        ;;
+        
+    "computer")
+        if [ -z "$2" ]; then
+            echo "Usage: $0 computer \"<command>\"" >&2
+            exit 1
+        fi
+
+        # Call the Python script to process the command using Anthropic computer-use
+        python3 "$SCRIPT_DIR/computer_processor.py" "$2"
+        ;;
+        
     *)
         echo "Usage: $0 <command> [args...]" >&2
         echo "Commands:" >&2
         echo "  collect <url> <output_file>  - Collect documentation from URL" >&2
         echo "  editor <instruction>  - Edit documentation using AI" >&2
+        echo "  bash \"<command>\"  - Execute bash command using AI" >&2
+        echo "  computer \"<command>\"  - Use computer-use tool with AI" >&2
         exit 1
         ;;
 esac

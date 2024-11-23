@@ -85,8 +85,9 @@
    use dynamic component instead of raw text of response.
 ```
 4. (server) Create SQLite database in server/app.db
-   bash
+   ```bash
    aloe1 bash "Create sqlite db in server/app.db. New table: messages {id: str, text?: str, isUser: bool, componentType?: str, componentProps?: json, submitResponse?: json, createdAt: int}"
+   ```
 
 5. (server) Create /load-chat and /save-chat endpoints
    aider
