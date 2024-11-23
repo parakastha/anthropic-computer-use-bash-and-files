@@ -10,6 +10,11 @@ import traceback
 import sys
 import logging
 from logging.handlers import RotatingFileHandler
+from dotenv import load_dotenv
+from . import prompts
+
+# Load environment variables from .env file
+load_dotenv()
 
 EDITOR_DIR = os.path.join(os.getcwd(), "editor_dir")
 SESSIONS_DIR = os.path.join(os.getcwd(), "sessions")
@@ -18,11 +23,10 @@ os.makedirs(SESSIONS_DIR, exist_ok=True)
 
 # Fetch system prompts from environment variables or use defaults
 BASH_SYSTEM_PROMPT = os.environ.get(
-    "BASH_SYSTEM_PROMPT", "You are a helpful assistant that can execute bash commands."
+    "BASH_SYSTEM_PROMPT", prompts.BASH_SYSTEM_PROMPT
 )
 EDITOR_SYSTEM_PROMPT = os.environ.get(
-    "EDITOR_SYSTEM_PROMPT",
-    "You are a helpful assistant that helps users edit text files.",
+    "EDITOR_SYSTEM_PROMPT", prompts.EDITOR_SYSTEM_PROMPT
 )
 
 
