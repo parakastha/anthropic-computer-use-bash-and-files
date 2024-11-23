@@ -87,7 +87,7 @@ const sendMessage = async () => {
   try {
     await simulateTyping()
     
-    const response = await fetch('http://localhost:3000/chat', {
+    const response = await fetch('http://localhost:3000/tool', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -111,7 +111,7 @@ const sendMessage = async () => {
     
     messages.value.push({
       role: 'assistant',
-      content: data.response,
+      content: JSON.stringify(data, null, 2), // Pretty print the entire response object
       timestamp: new Date()
     })
   } catch (error) {

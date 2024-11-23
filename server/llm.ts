@@ -9,8 +9,43 @@ const anthropic = new Anthropic({
   apiKey: apiKey
 });
 
+// Define types for UI generation tool
+type GenUITool = {
+  component_type: 'text' | 'starRating' | 'colorPicker' | 'contactForm';
+  textResponse?: string;
+};
+
+// Define types for Claude API response
+type ContentType = 'text' | 'tool_calls';
+
+type TextContent = {
+  type: 'text';
+  text: string;
+};
+
+type ToolCallFunction = {
+  name: string;
+  arguments: string;
+};
+
+type ToolCall = {
+  type: 'function';
+  function: ToolCallFunction;
+};
+
+type ToolCallsContent = {
+  type: 'tool_calls';
+  tool_calls: ToolCall[];
+};
+
+type MessageContent = TextContent | ToolCallsContent;
+
 // Define types for messages and sessions
-type Message = { role: 'user' | 'assistant'; content: string };
+type Message = {
+  role: 'user' | 'assistant';
+  content: string;
+};
+
 type ChatSession = {
   messages: Message[];
   lastUpdated: Date;
@@ -19,7 +54,14 @@ type ChatSession = {
 // Store sessions in memory
 const sessions = new Map<string, ChatSession>();
 
-export async function chat(message: string, sessionId?: string): Promise<{ response: string; sessionId: string }> {
+export async function chat(message: string, sessionId?: string): Promise<{ 
+  response: string; 
+  sessionId: string;
+  uiComponent?: {
+    type: string;
+    text?: string;
+  };
+}> {
   // Create or get existing session
   if (!sessionId || !sessions.has(sessionId)) {
     sessionId = Math.random().toString(36).substring(2);
@@ -38,11 +80,30 @@ export async function chat(message: string, sessionId?: string): Promise<{ respo
   const response = await anthropic.messages.create({
     model: 'claude-3-sonnet-20240229',
     max_tokens: 1000,
-    messages: session.messages
+    system: "You are a helpful AI assistant that generates UI components. Always start your response with the component type in brackets, like [text], [starRating], [colorPicker], or [contactForm], followed by your explanation.",
+    messages: session.messages.map(msg => ({
+      role: msg.role,
+      content: msg.content
+    })),
+    temperature: 0.7
   });
-  
+
+  // Get the text response
+  const textContent = response.content[0];
+  const assistantMessage = textContent.text;
+
+  // Try to parse component type from the response
+  let uiComponent;
+  const componentTypeMatch = assistantMessage.match(/^\[(.*?)\]/);
+  if (componentTypeMatch) {
+    const componentType = componentTypeMatch[1];
+    uiComponent = {
+      type: componentType,
+      text: assistantMessage.replace(/^\[.*?\]\s*/, '').trim()
+    };
+  }
+
   // Add assistant response to history
-  const assistantMessage = response.content[0].text;
   session.messages.push({ role: 'assistant', content: assistantMessage });
   
   // Update session timestamp
@@ -50,7 +111,8 @@ export async function chat(message: string, sessionId?: string): Promise<{ respo
   
   return {
     response: assistantMessage,
-    sessionId
+    sessionId,
+    uiComponent
   };
 }
 
