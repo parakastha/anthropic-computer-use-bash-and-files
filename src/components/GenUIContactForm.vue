@@ -14,10 +14,16 @@
     </div>
     <button type="submit">Submit</button>
   </form>
+  <div v-if="submitted" class="submitted-response">
+    <h3>Submitted Information:</h3>
+    <p><strong>Name:</strong> {{ submittedData?.name }}</p>
+    <p><strong>Email:</strong> {{ submittedData?.email }}</p>
+    <p><strong>Message:</strong> {{ submittedData?.message }}</p>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 
 const formData = reactive({
   name: '',
@@ -25,11 +31,16 @@ const formData = reactive({
   message: ''
 })
 
+const submitted = ref(false)
+const submittedData = ref<typeof formData | null>(null)
+
 const emit = defineEmits<{
   (e: 'handleSubmit', data: { type: 'contactForm', formData: typeof formData }): void
 }>()
 
 const submit = () => {
+  submitted.value = true
+  submittedData.value = { ...formData }
   emit('handleSubmit', { type: 'contactForm', formData: { ...formData } })
 }
 </script>
@@ -59,5 +70,13 @@ input, textarea {
 
 textarea {
   height: 100px;
+}
+
+.submitted-response {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
 }
 </style>

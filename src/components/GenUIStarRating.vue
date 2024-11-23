@@ -9,6 +9,9 @@
       >★</span>
     </div>
     <button @click="submit" :disabled="!rating">Submit Rating</button>
+    <p v-if="submittedRating" class="submitted-response">
+      You rated: {{ submittedRating }} stars
+    </p>
   </div>
 </template>
 
@@ -16,6 +19,7 @@
 import { ref } from 'vue'
 
 const rating = ref(0)
+const submittedRating = ref<number | null>(null)
 const emit = defineEmits<{
   (e: 'handleSubmit', data: { type: 'starRating', rating: number }): void
 }>()
@@ -25,6 +29,7 @@ const setRating = (value: number) => {
 }
 
 const submit = () => {
+  submittedRating.value = rating.value
   emit('handleSubmit', { type: 'starRating', rating: rating.value })
 }
 </script>
@@ -50,5 +55,13 @@ const submit = () => {
 
 .star.active {
   color: gold;
+}
+
+.submitted-response {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
 }
 </style>

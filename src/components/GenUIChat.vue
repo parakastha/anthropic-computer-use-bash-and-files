@@ -4,7 +4,7 @@
       <div v-for="(message, index) in messages" :key="index" :class="['message', message.role]">
         <div class="message-content">
           <component 
-            v-if="message.componentType"
+            v-if="message.role === 'assistant' && message.componentType"
             :is="resolveComponent(message.componentType)"
             v-bind="message.componentProps"
             @handleSubmit="handleDynamicSubmit"
@@ -24,6 +24,7 @@
     </div>
     <div class="chat-input">
       <textarea 
+        ref="textareaRef"
         v-model="userInput" 
         @keydown.enter.prevent="sendMessage"
         placeholder="Type your message..."
@@ -39,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick, markRaw } from 'vue'
+import { ref, onMounted, nextTick, markRaw, watch } from 'vue'
 import GenUIText from './GenUIText.vue'
 import GenUIStarRating from './GenUIStarRating.vue'
 import GenUIColorPicker from './GenUIColorPicker.vue'
@@ -81,9 +82,20 @@ const handleDynamicSubmit = (data: any) => {
 const messages = ref<ChatMessage[]>([])
 const userInput = ref('')
 const messagesContainer = ref<HTMLElement | null>(null)
+const textareaRef = ref<HTMLTextAreaElement | null>(null)
 const isLoading = ref(false)
 const isTyping = ref(false)
 const sessionId = ref<string | null>(null)
+
+// Watch userInput and capitalize first letter while typing
+watch(userInput, (newValue) => {
+  if (newValue && newValue.length > 0) {
+    const shouldCapitalize = newValue.length === 1 || (newValue.length > 1 && newValue[newValue.length - 2] === '\n');
+    if (shouldCapitalize) {
+      userInput.value = newValue.charAt(newValue.length - 1).toUpperCase() + newValue.slice(newValue.length);
+    }
+  }
+}, { immediate: true })
 
 const generateId = () => {
   return Date.now().toString(36) + Math.random().toString(36).substring(2)
@@ -113,17 +125,18 @@ const sendMessage = async () => {
   const trimmedInput = userInput.value.trim()
   if (!trimmedInput || isLoading.value) return
 
+  // Capitalize first letter of the input
+  const capitalizedInput = trimmedInput.charAt(0).toUpperCase() + trimmedInput.slice(1)
+  
   isLoading.value = true
   
-  // Add user message
+  // Add user message with capitalized input
   messages.value.push({
     role: 'user',
-    content: trimmedInput,
+    content: capitalizedInput,
     timestamp: new Date(),
     id: generateId(),
-    createdAt: Date.now(),
-    componentType: 'userMessage',
-    componentProps: { text: trimmedInput }
+    createdAt: Date.now()
   })
   userInput.value = ''
   await scrollToBottom()
@@ -137,7 +150,7 @@ const sendMessage = async () => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ 
-        message: trimmedInput,
+        message: capitalizedInput,  // Use capitalized input here too
         sessionId: sessionId.value  
       })
     })
@@ -183,6 +196,10 @@ const sendMessage = async () => {
   } finally {
     isLoading.value = false
     await scrollToBottom()
+    // Add focus back to textarea
+    nextTick(() => {
+      textareaRef.value?.focus()
+    })
   }
 }
 
