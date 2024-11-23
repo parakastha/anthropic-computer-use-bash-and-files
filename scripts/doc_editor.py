@@ -120,17 +120,8 @@ def main():
     
     # Validate files
     if input_file and not os.path.exists(input_file):
-        # Try with uppercase directory name
-        alt_input_file = input_file.replace('ai_docs', 'AI_DOCS')
-        if os.path.exists(alt_input_file):
-            input_file = alt_input_file
-        else:
-            print(f"Error: Input file '{input_file}' not found")
-            sys.exit(1)
-    
-    # If output file uses ai_docs, convert to AI_DOCS
-    if output_file and 'ai_docs/' in output_file:
-        output_file = output_file.replace('ai_docs/', 'AI_DOCS/')
+        print(f"Error: Input file '{input_file}' not found")
+        sys.exit(1)
     
     # Edit/create the document
     edit_document(client, input_file, output_file, instruction)

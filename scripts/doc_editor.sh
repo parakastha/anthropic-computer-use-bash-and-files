@@ -13,5 +13,5 @@ aider \
   --architect \
   --no-auto-commits \
   --show-diffs \
-  AI_DOCS/*.md \
+  ai_docs/*.md \
   "$@"
