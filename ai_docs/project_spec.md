@@ -54,11 +54,12 @@
    ```
 
 2. (client) Call /tool endpoint
-   aider
+   
+   ```aider
    update GenUIChat.vue:
-   call /tool endpoint after enter is pressed.
-   use entire object as response.
-
+      call /tool endpoint after enter is pressed.
+      use entire object as response.
+   ```
 2.2. (client) Update messages type to store response from /tool endpoint and setup for load/save
    aider
    update GenUIChat.vue:
