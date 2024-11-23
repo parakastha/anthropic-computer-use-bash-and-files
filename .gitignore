@@ -186,3 +186,7 @@ editor_dir/
 sessions/
 
 bup/
+
+# Test and temporary files
+test_env.py
+collect
