@@ -5,7 +5,7 @@ import GenUIChat from './components/GenUIChat.vue'
 <template>
   <div class="app-container">
     <header>
-      <h1>AI Chat Interface</h1>
+      <h1>Xuno Chat</h1>
     </header>
     <main>
       <GenUIChat />
