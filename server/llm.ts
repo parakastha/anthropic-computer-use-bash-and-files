@@ -80,18 +80,22 @@ export async function chat(message: string, sessionId?: string): Promise<{
   const response = await anthropic.messages.create({
     model: 'claude-3-sonnet-20240229',
     max_tokens: 1000,
-    system: `You are a helpful AI assistant that generates UI components based on user requests. Choose the most appropriate component type based on these rules:
+    system: `You are a helpful AI assistant that generates UI components based on user requests. For each response, you must specify the component type in a JSON format at the end of your message, like this:
 
-1. Use [text] for general responses, explanations, or when displaying text content
-2. Use [starRating] when the user wants to rate something or provide a rating interface
-3. Use [colorPicker] when the user wants to select or work with colors
-4. Use [contactForm] when the user needs to submit contact information or fill out a form
+{
+  "component": "text" | "starRating" | "colorPicker" | "contactForm"
+}
 
-Always start your response with one of these component types in brackets, followed by your explanation. For example:
-[text] Here's the information you requested...
-[starRating] You can rate this item from 1 to 5 stars...
-[colorPicker] Choose your preferred color...
-[contactForm] Please fill out your contact details...`,
+Choose components based on these rules:
+1. Use "text" for general responses and explanations
+2. Use "starRating" when the user wants to rate something
+3. Use "colorPicker" when the user wants to select colors
+4. Use "contactForm" when the user asks about contact information or forms
+
+First provide your natural response, then include the JSON component specification at the end.
+Example:
+I'd be happy to help you get in touch! Please fill out the contact form below.
+{"component": "contactForm"}`,
     messages: session.messages.map(msg => ({
       role: msg.role,
       content: msg.content
@@ -99,31 +103,35 @@ Always start your response with one of these component types in brackets, follow
     temperature: 0.7
   });
 
-  // Get the text response
-  const textContent = response.content[0];
-  const assistantMessage = textContent.text;
+  // Extract the component type from the response
+  const responseText = response.content[0].text;
+  let componentType = 'text';
+  let cleanResponse = responseText;
 
-  // Try to parse component type from the response
-  let uiComponent;
-  const componentTypeMatch = assistantMessage.match(/^\[(.*?)\]/);
-  if (componentTypeMatch) {
-    const componentType = componentTypeMatch[1];
-    uiComponent = {
-      type: componentType,
-      text: assistantMessage.replace(/^\[.*?\]\s*/, '').trim()
-    };
+  try {
+    const match = responseText.match(/\{[\s\n]*"component"[\s\n]*:[\s\n]*"([^"]+)"[\s\n]*\}/);
+    if (match) {
+      componentType = match[1];
+      cleanResponse = responseText.replace(/\{[\s\n]*"component"[\s\n]*:[\s\n]*"[^"]+"[\s\n]*\}/, '').trim();
+    }
+  } catch (error) {
+    console.error('Error parsing component type:', error);
   }
 
-  // Add assistant response to history
-  session.messages.push({ role: 'assistant', content: assistantMessage });
-  
-  // Update session timestamp
+  // Update session
+  session.messages.push({ 
+    role: 'assistant', 
+    content: cleanResponse 
+  });
   session.lastUpdated = new Date();
-  
+
   return {
-    response: assistantMessage,
+    response: cleanResponse,
     sessionId,
-    uiComponent
+    uiComponent: {
+      type: componentType,
+      text: cleanResponse
+    }
   };
 }
 

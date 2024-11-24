@@ -1,156 +1,66 @@
 <template>
-  <div class="chat-container">
-    <div class="chat-messages" ref="messagesContainer">
-      <div v-for="(message, index) in messages" :key="index" :class="['message', message.role]">
-        <div class="message-content">
-          <component 
-            v-if="message.role === 'assistant' && message.componentType"
-            :is="resolveComponent(message.componentType)"
-            v-bind="message.componentProps"
-            @handleSubmit="handleDynamicSubmit"
-          />
-          <div v-else class="message-text">{{ message.content }}</div>
-          <div class="message-timestamp">{{ formatTimestamp(message.timestamp) }}</div>
-          <div v-if="message.error" class="message-error">Error: {{ message.error }}</div>
-        </div>
+  <div class="page-container">
+    <div class="chat-container">
+      <ChatHeader title="Xuno Chat" />
+      <div class="chat-content">
+        <ChatMessages 
+          :messages="messages" 
+          :isTyping="isTyping"
+          @handleSubmit="handleDynamicSubmit"
+        />
+        <ChatInput 
+          :isLoading="isLoading"
+          @submit="sendMessage"
+        />
       </div>
-      <div v-if="isTyping" class="message assistant typing">
-        <div class="typing-indicator">
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
-      </div>
-    </div>
-    <div class="chat-input">
-      <textarea 
-        ref="textareaRef"
-        v-model="userInput" 
-        @keydown.enter.prevent="sendMessage"
-        placeholder="Type your message..."
-        rows="3"
-        :disabled="isLoading"
-      ></textarea>
-      <button @click="sendMessage" :disabled="!userInput.trim() || isLoading">
-        <span v-if="!isLoading">Send</span>
-        <span v-else>Sending...</span>
-      </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick, markRaw, watch } from 'vue'
-import GenUIText from './GenUIText.vue'
-import GenUIStarRating from './GenUIStarRating.vue'
-import GenUIColorPicker from './GenUIColorPicker.vue'
-import GenUIContactForm from './GenUIContactForm.vue'
-
-interface ChatMessage {
-  role: 'user' | 'assistant'
-  content: string
-  timestamp: Date
-  error?: string
-  id: string
-  componentType?: string
-  componentProps?: Record<string, any>
-  submitResponse?: Record<string, any>
-  createdAt: number
-}
-
-// Add component resolution function
-const resolveComponent = (type: string) => {
-  const components = {
-    text: markRaw(GenUIText),
-    starRating: markRaw(GenUIStarRating),
-    colorPicker: markRaw(GenUIColorPicker),
-    contactForm: markRaw(GenUIContactForm),
-    userMessage: markRaw(GenUIText),
-    textMessage: markRaw(GenUIText),
-    errorMessage: markRaw(GenUIText)
-  }
-  return components[type as keyof typeof components] || markRaw(GenUIText)
-}
-
-// Add submit handler
-const handleDynamicSubmit = (data: any) => {
-  console.log('Component submitted:', data)
-  // Handle the submission based on the component type
-  // You can add specific handling logic here
-}
+import { ref, onMounted } from 'vue'
+import ChatHeader from './chat/ChatHeader.vue'
+import ChatMessages from './chat/ChatMessages.vue'
+import ChatInput from './chat/ChatInput.vue'
+import type { ChatMessage } from './chat/types'
 
 const messages = ref<ChatMessage[]>([])
-const userInput = ref('')
-const messagesContainer = ref<HTMLElement | null>(null)
-const textareaRef = ref<HTMLTextAreaElement | null>(null)
 const isLoading = ref(false)
 const isTyping = ref(false)
 const sessionId = ref<string | null>(null)
 
-// Watch userInput and capitalize first letter while typing
-watch(userInput, (newValue) => {
-  if (newValue && newValue.length > 0) {
-    const shouldCapitalize = newValue.length === 1 || (newValue.length > 1 && newValue[newValue.length - 2] === '\n');
-    if (shouldCapitalize) {
-      userInput.value = newValue.charAt(newValue.length - 1).toUpperCase() + newValue.slice(newValue.length);
-    }
-  }
-}, { immediate: true })
+const generateId = () => Math.random().toString(36).substring(2, 15)
 
-const generateId = () => {
-  return Date.now().toString(36) + Math.random().toString(36).substring(2)
-}
-
-const formatTimestamp = (date: Date): string => {
-  return new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric',
-    minute: 'numeric',
-    hour12: true
-  }).format(date)
-}
-
-const scrollToBottom = async () => {
-  await nextTick()
-  if (messagesContainer.value) {
-    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
-  }
-}
-
-const simulateTyping = async () => {
+const simulateTyping = () => {
   isTyping.value = true
-  await scrollToBottom()
+  setTimeout(() => {
+    isTyping.value = false
+  }, 1000)
 }
 
-const sendMessage = async () => {
-  const trimmedInput = userInput.value.trim()
-  if (!trimmedInput || isLoading.value) return
-
-  // Capitalize first letter of the input
-  const capitalizedInput = trimmedInput.charAt(0).toUpperCase() + trimmedInput.slice(1)
+const sendMessage = async (message: string) => {
+  if (isLoading.value) return
   
   isLoading.value = true
   
-  // Add user message with capitalized input
   messages.value.push({
     role: 'user',
-    content: capitalizedInput,
+    content: message,
     timestamp: new Date(),
     id: generateId(),
     createdAt: Date.now()
   })
-  userInput.value = ''
-  await scrollToBottom()
 
   try {
-    await simulateTyping()
+    simulateTyping()
     
-    const response = await fetch('http://localhost:3000/tool', {
+    const response = await fetch('/api/chat', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ 
-        message: capitalizedInput,  // Use capitalized input here too
+        message,
         sessionId: sessionId.value  
       })
     })
@@ -160,45 +70,59 @@ const sendMessage = async () => {
     }
 
     const data = await response.json()
-    isTyping.value = false
     
-    if (data.sessionId) {
+    if (!sessionId.value) {
       sessionId.value = data.sessionId
     }
     
     messages.value.push({
       role: 'assistant',
-      content: JSON.stringify(data, null, 2),
+      content: data.response,
       timestamp: new Date(),
       id: generateId(),
       createdAt: Date.now(),
-      componentType: data.uiComponent?.type || 'textMessage',
-      componentProps: { textResponse: data.uiComponent?.text || data.response },
-      submitResponse: data
+      componentType: data.uiComponent?.type || 'text',
+      componentProps: { 
+        textResponse: data.response,
+        ...(data.uiComponent?.type === 'contactForm' && {
+          onSubmit: (formData: any) => {
+            console.log('Contact form submitted:', formData);
+            handleDynamicSubmit(formData);
+          }
+        })
+      }
     })
   } catch (error) {
-    console.error('Error:', error)
-    isTyping.value = false
-    
     messages.value.push({
       role: 'assistant',
-      content: 'Sorry, I encountered an error processing your request.',
+      content: 'Sorry, there was an error processing your request.',
       timestamp: new Date(),
-      error: error instanceof Error ? error.message : 'Unknown error',
       id: generateId(),
       createdAt: Date.now(),
+      error: error instanceof Error ? error.message : 'Unknown error',
       componentType: 'errorMessage',
       componentProps: { 
-        text: 'Sorry, I encountered an error processing your request.',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        textResponse: 'Sorry, there was an error processing your request.' 
       }
     })
   } finally {
     isLoading.value = false
-    await scrollToBottom()
-    // Add focus back to textarea
-    nextTick(() => {
-      textareaRef.value?.focus()
+  }
+}
+
+const handleDynamicSubmit = (data: any) => {
+  console.log('Component submitted:', data)
+  if (data.type === 'contactForm') {
+    messages.value.push({
+      role: 'assistant',
+      content: `Thank you for your submission! I've received your contact information:\nName: ${data.formData.name}\nEmail: ${data.formData.email}\nMessage: ${data.formData.message}`,
+      timestamp: new Date(),
+      id: generateId(),
+      createdAt: Date.now(),
+      componentType: 'text',
+      componentProps: { 
+        textResponse: `Thank you for your submission! I've received your contact information:\nName: ${data.formData.name}\nEmail: ${data.formData.email}\nMessage: ${data.formData.message}`
+      }
     })
   }
 }
@@ -206,144 +130,67 @@ const sendMessage = async () => {
 onMounted(() => {
   messages.value.push({
     role: 'assistant',
-    content: 'Hello! How can I help you today?',
+    content: 'Hi! How can I help you today?',
     timestamp: new Date(),
     id: generateId(),
     createdAt: Date.now(),
-    componentType: 'textMessage',
-    componentProps: { textResponse: 'Hello! How can I help you today?' }
+    componentType: 'text',
+    componentProps: { textResponse: 'Hi! How can I help you today?' }
   })
 })
 </script>
 
 <style scoped>
+.page-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  width: 100%;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 20px;
+  margin: 0;
+  box-sizing: border-box;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
 .chat-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
+  width: 100%;
   max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
-  gap: 20px;
-}
-
-.chat-messages {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px;
-  border-radius: 8px;
-  background: #f5f5f5;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.message {
-  max-width: 80%;
-  padding: 12px 16px;
-  border-radius: 8px;
-  word-wrap: break-word;
-}
-
-.message-content {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.message-text {
-  font-size: 1rem;
-}
-
-.message-timestamp {
-  font-size: 0.75rem;
-  opacity: 0.7;
-  margin-top: 4px;
-}
-
-.message-error {
-  color: #dc3545;
-  font-size: 0.875rem;
-  margin-top: 4px;
-}
-
-.message.user {
-  align-self: flex-end;
-  background: #007AFF;
-  color: white;
-}
-
-.message.assistant {
-  align-self: flex-start;
+  height: 90vh;
   background: white;
-  color: #333;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.typing {
-  padding: 12px 16px;
-}
-
-.typing-indicator {
+  border-radius: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   display: flex;
-  gap: 4px;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  margin: 0 auto;
+  flex-shrink: 0;
 }
 
-.typing-indicator span {
-  width: 8px;
-  height: 8px;
-  background: #007AFF;
-  border-radius: 50%;
-  animation: bounce 1.4s infinite ease-in-out;
-}
-
-.typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
-.typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
-
-@keyframes bounce {
-  0%, 80%, 100% { transform: scale(0); }
-  40% { transform: scale(1); }
-}
-
-.chat-input {
-  display: flex;
-  gap: 10px;
-}
-
-textarea {
+.chat-content {
   flex: 1;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  resize: none;
-  font-family: inherit;
-  font-size: inherit;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  height: calc(100% - 70px);
 }
 
-textarea:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
+@media (max-width: 768px) {
+  .page-container {
+    padding: 0;
+    margin: 0;
+  }
 
-button {
-  padding: 12px 24px;
-  background: #007AFF;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background 0.2s;
-  min-width: 100px;
-}
-
-button:hover:not(:disabled) {
-  background: #0056b3;
-}
-
-button:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-  opacity: 0.7;
+  .chat-container {
+    height: 100vh;
+    border-radius: 0;
+    margin: 0;
+  }
 }
 </style>

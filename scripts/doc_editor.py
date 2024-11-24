@@ -33,14 +33,14 @@ def process_editor_command(instruction):
     """Process an editor command and extract input/output files."""
     # Use regex to find files after "read" and "Create"
     input_match = re.search(r'read\s+([^\s.]+(?:\.[^\s.]+)*)', instruction)
-    output_match = re.search(r'Create\s+([^\s.]+(?:\.[^\s.]+)*)', instruction)
+    output_matches = re.finditer(r'Create\s+([^\s.]+(?:\.[^\s.]+)*)', instruction)
     
     input_file = input_match.group(1) if input_match else None
-    output_file = output_match.group(1) if output_match else None
+    output_files = [m.group(1) for m in output_matches]
     
-    return input_file, output_file, instruction
+    return input_file, output_files, instruction
 
-def edit_document(client, input_file, output_file, instruction):
+def edit_document(client, input_file, output_files, instruction):
     """Use Claude to edit/create a document based on instructions."""
     
     # Read input file if it exists
@@ -52,11 +52,12 @@ def edit_document(client, input_file, output_file, instruction):
     prompt = f"""You are a technical documentation editor specializing in creating clear, well-structured documentation. Your task is to:
 
 1. Read and understand the input content below
-2. Create a new document that focuses specifically on the aspects mentioned in the instruction
+2. Create new documents that focus specifically on the aspects mentioned in the instruction
 3. Format the output in clean markdown with proper headings, code blocks, and sections
 4. Remove any irrelevant content or metadata
 5. Ensure all code examples are properly formatted with language tags
 6. Include only the actual documentation content - no headers about what you're doing
+7. Return each document separated by a special marker: ---NEXT_DOC---
 
 Here is the instruction:
 {instruction}
@@ -65,7 +66,7 @@ Here is the input content to process:
 
 {input_content}
 
-Remember: Provide ONLY the final documentation content, properly formatted in markdown. Do not include any meta-text about what you're doing."""
+Remember: Provide ONLY the final documentation content for each requested document, properly formatted in markdown, separated by ---NEXT_DOC---. Do not include any meta-text about what you're doing."""
 
     print("Processing documentation...", file=sys.stderr)
     
@@ -83,48 +84,43 @@ Remember: Provide ONLY the final documentation content, properly formatted in ma
     )
     
     # Extract and clean up the response
-    # The content is now a list, get the first item's text
     response = message.content[0].text
     
-    # Remove any meta-text that might appear at the start
-    response = re.sub(r'^Here is .*?:\n+', '', response, flags=re.MULTILINE)
-    response = response.strip()
+    # Split response into multiple documents if needed
+    docs = [doc.strip() for doc in response.split('---NEXT_DOC---')]
     
-    # Write to output file
-    if output_file:
-        write_file(output_file, response)
-        print(f"Created/Updated {output_file}", file=sys.stderr)
-    else:
-        print(response)
+    # Write each document to its corresponding output file
+    for i, output_file in enumerate(output_files):
+        if i < len(docs):
+            content = docs[i].strip()
+            # Remove any meta-text that might appear at the start
+            content = re.sub(r'^Here is .*?:\n+', '', content, flags=re.MULTILINE)
+            write_file(output_file, content)
+            print(f"Created/Updated {output_file}", file=sys.stderr)
 
 def main():
     if len(sys.argv) != 2:
-        print("Usage: doc_editor.py <instruction>")
+        print("Usage: doc_editor.py \"<instruction>\"", file=sys.stderr)
         sys.exit(1)
-    
+
     # Load environment variables
     load_env()
-        
-    # Get API key from environment
+    
+    # Get ANTHROPIC_API_KEY from environment
     api_key = os.environ.get('ANTHROPIC_API_KEY')
     if not api_key:
-        print("Error: ANTHROPIC_API_KEY environment variable not set")
+        print("Error: ANTHROPIC_API_KEY environment variable not set", file=sys.stderr)
         sys.exit(1)
-        
+    
     # Create Anthropic client
-    client = anthropic.Anthropic(api_key=api_key)
+    client = anthropic.Client(api_key=api_key)
     
     # Process the instruction
     instruction = sys.argv[1]
-    input_file, output_file, instruction = process_editor_command(instruction)
+    input_file, output_files, instruction = process_editor_command(instruction)
     
-    # Validate files
-    if input_file and not os.path.exists(input_file):
-        print(f"Error: Input file '{input_file}' not found")
-        sys.exit(1)
-    
-    # Edit/create the document
-    edit_document(client, input_file, output_file, instruction)
+    # Edit/create the document(s)
+    edit_document(client, input_file, output_files, instruction)
 
 if __name__ == '__main__':
     main()

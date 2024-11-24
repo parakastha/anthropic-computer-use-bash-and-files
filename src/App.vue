@@ -14,7 +14,7 @@ import GenUIChat from './components/GenUIChat.vue'
 </template>
 
 <style>
-html, body {
+html, body, #app {
   margin: 0;
   padding: 0;
   height: 100%;
@@ -30,6 +30,8 @@ html, body {
   display: flex;
   flex-direction: column;
   height: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 header {
@@ -47,7 +49,11 @@ header h1 {
 
 main {
   flex: 1;
-  padding: 1rem;
-  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 0;
+  overflow-y: auto;
+  height: calc(100vh - 60px); /* Adjust based on header height */
 }
 </style>

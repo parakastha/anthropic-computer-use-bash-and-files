@@ -3,6 +3,12 @@ import sys
 import requests
 from bs4 import BeautifulSoup, NavigableString, Tag
 import re
+import io
+import codecs
+
+# Set up UTF-8 output
+if sys.platform == 'win32':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
 def process_code_block(element):
     # Try to find the language from pre or code class
@@ -247,9 +253,10 @@ if __name__ == '__main__':
         sys.exit(1)
     
     url = sys.argv[1]
-    content = extract_content(url)
-    if content:
-        print(content)  # Print the content to stdout
-    else:
-        print("Error: No content extracted", file=sys.stderr)
+    try:
+        content = extract_content(url)
+        # Encode content with error handling
+        print(content.encode('utf-8', errors='replace').decode('utf-8'))
+    except Exception as e:
+        print(f"Error: {str(e)}", file=sys.stderr)
         sys.exit(1)

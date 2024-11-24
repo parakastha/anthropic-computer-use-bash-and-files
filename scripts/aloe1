@@ -12,6 +12,33 @@ set -a
 [ -f .env ] && . .env
 set +a
 
+# Detect uv command
+if ! command -v uv &> /dev/null; then
+    echo "Error: uv is not installed. Please install it first: curl -LsSf https://astral.sh/uv/install.sh | sh" >&2
+    exit 1
+fi
+
+# Ensure virtual environment exists and dependencies are installed
+if [ ! -d ".venv" ]; then
+    echo "Creating virtual environment and installing dependencies..."
+    uv venv
+    uv pip install requests beautifulsoup4 anthropic
+fi
+
+# Check if anthropic package is installed
+if ! uv pip freeze | grep -q "^anthropic=="; then
+    echo "Installing missing dependencies..."
+    uv pip install anthropic
+fi
+
+# Activate virtual environment
+. .venv/Scripts/activate || . .venv/bin/activate
+
+# Set UTF-8 encoding for Windows
+if [ "$OSTYPE" = "msys" ] || [ "$OSTYPE" = "win32" ]; then
+    export PYTHONIOENCODING=utf8
+fi
+
 # Process commands
 case "$1" in
     "collect")
@@ -26,8 +53,8 @@ case "$1" in
         # Create output directory if it doesn't exist
         mkdir -p "$(dirname "$output_file")"
         
-        # Run the content extraction script
-        python3 "$SCRIPT_DIR/extract_content.py" "$url" > "$output_file"
+        # Run the content extraction script with UTF-8 encoding
+        python "$SCRIPT_DIR/extract_content.py" "$url" > "$output_file"
         if [ $? -eq 0 ]; then
             echo "Documentation collected from $url and saved to $output_file" >&2
         else
@@ -43,7 +70,7 @@ case "$1" in
         fi
         
         # Call the Python editor script with the instruction
-        python3 "$SCRIPT_DIR/doc_editor.py" "$2"
+        python "$SCRIPT_DIR/doc_editor.py" "$2"
         ;;
         
     "bash")
@@ -51,9 +78,9 @@ case "$1" in
             echo "Usage: $0 bash \"<command>\"" >&2
             exit 1
         fi
-
+        
         # Call the Python script to process the command using Anthropic API
-        python3 "$SCRIPT_DIR/bash_processor.py" "$2"
+        python "$SCRIPT_DIR/bash_processor.py" "$2"
         ;;
         
     "computer")
@@ -63,7 +90,7 @@ case "$1" in
         fi
 
         # Call the Python script to process the command using Anthropic computer-use
-        python3 "$SCRIPT_DIR/computer_processor.py" "$2"
+        python "$SCRIPT_DIR/computer_processor.py" "$2"
         ;;
         
     *)
