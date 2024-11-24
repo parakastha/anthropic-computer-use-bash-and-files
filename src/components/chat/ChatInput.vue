@@ -62,36 +62,43 @@ const handleSubmit = () => {
   left: 0;
   right: 0;
   padding: 24px;
-  background: linear-gradient(to top, white, rgba(255, 255, 255, 0.9));
+  background: linear-gradient(to top, rgba(255, 255, 255, 1) 50%, rgba(255, 255, 255, 0.95));
   backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .chat-input {
   display: flex;
   gap: 12px;
-  background: #f8f9fa;
-  padding: 8px;
-  border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  max-width: 800px;
+  margin: 0 auto;
+  background: white;
+  padding: 12px;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 textarea {
   flex: 1;
-  padding: 12px;
+  padding: 12px 16px;
   border: 1px solid #e9ecef;
-  border-radius: 12px;
+  border-radius: 16px;
   resize: none;
   font-family: inherit;
-  font-size: inherit;
+  font-size: 1rem;
   line-height: 1.5;
   transition: all 0.2s ease;
-  background: white;
+  background: #f8f9fa;
+  min-height: 24px;
+  max-height: 150px;
 }
 
 textarea:focus {
   outline: none;
   border-color: #007AFF;
-  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+  background: white;
 }
 
 textarea:disabled {
@@ -100,25 +107,31 @@ textarea:disabled {
 }
 
 button {
-  padding: 12px 24px;
+  padding: 12px 28px;
   background: linear-gradient(135deg, #0056b3, #007AFF);
   color: white;
   border: none;
-  border-radius: 12px;
+  border-radius: 16px;
   cursor: pointer;
-  font-weight: 500;
+  font-weight: 600;
+  font-size: 0.95rem;
   transition: all 0.2s ease;
   min-width: 100px;
-  box-shadow: 0 2px 4px rgba(0, 122, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 button:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 122, 255, 0.3);
+  box-shadow: 0 6px 15px rgba(0, 122, 255, 0.25);
+  background: linear-gradient(135deg, #0062cc, #0084ff);
 }
 
 button:active:not(:disabled) {
   transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.2);
 }
 
 button:disabled {
@@ -131,6 +144,14 @@ button:disabled {
 @media (max-width: 768px) {
   .chat-input-wrapper {
     padding: 16px;
+  }
+  
+  .chat-input {
+    padding: 10px;
+  }
+  
+  button {
+    padding: 12px 20px;
   }
 }
 </style>

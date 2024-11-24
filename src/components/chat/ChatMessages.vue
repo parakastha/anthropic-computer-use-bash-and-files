@@ -64,6 +64,9 @@ onMounted(scrollToBottom)
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .chat-messages::-webkit-scrollbar {
@@ -79,13 +82,25 @@ onMounted(scrollToBottom)
   border-radius: 3px;
 }
 
+.chat-messages::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
 .typing {
   padding: 12px 16px;
+  align-self: flex-start;
+  max-width: 85%;
+  margin-left: 20px;
 }
 
 .typing-indicator {
   display: flex;
   gap: 4px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #ffffff, #f8f9fa);
+  border-radius: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .typing-indicator span {
@@ -94,19 +109,32 @@ onMounted(scrollToBottom)
   background: #007AFF;
   border-radius: 50%;
   animation: bounce 1.4s infinite ease-in-out;
+  opacity: 0.7;
 }
 
 .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
 .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
 
 @keyframes bounce {
-  0%, 80%, 100% { transform: scale(0); }
-  40% { transform: scale(1); }
+  0%, 80%, 100% { 
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  40% { 
+    transform: scale(1);
+    opacity: 0.8;
+  }
 }
 
 @media (max-width: 768px) {
   .chat-messages {
     padding: 16px;
+    gap: 12px;
+  }
+
+  .typing {
+    margin-left: 16px;
+    max-width: 90%;
   }
 }
 </style>

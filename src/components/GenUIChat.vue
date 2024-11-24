@@ -147,7 +147,7 @@ onMounted(() => {
   align-items: center;
   min-height: 100vh;
   width: 100%;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: linear-gradient(135deg, #f0f2f5 0%, #e9ecef 100%);
   padding: 20px;
   margin: 0;
   box-sizing: border-box;
@@ -160,17 +160,18 @@ onMounted(() => {
 
 .chat-container {
   width: 100%;
-  max-width: 800px;
+  max-width: 1000px;
   height: 90vh;
   background: white;
   border-radius: 24px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   position: relative;
   margin: 0 auto;
   flex-shrink: 0;
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .chat-content {
@@ -179,6 +180,7 @@ onMounted(() => {
   flex-direction: column;
   position: relative;
   height: calc(100% - 70px);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, rgba(248, 249, 250, 0.5) 100%);
 }
 
 @media (max-width: 768px) {
@@ -191,6 +193,7 @@ onMounted(() => {
     height: 100vh;
     border-radius: 0;
     margin: 0;
+    box-shadow: none;
   }
 }
 </style>
