@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { chat } from './llm';
 import * as dotenv from 'dotenv';
+import facebookRoutes from './routes/facebook';
 
 // Load environment variables
 dotenv.config();
@@ -12,6 +13,7 @@ const nodeEnv = process.env.NODE_ENV || 'development';
 
 app.use(cors());
 app.use(express.json());
+app.use('/api/facebook', facebookRoutes);
 
 app.post('/chat', async (req, res) => {
   try {

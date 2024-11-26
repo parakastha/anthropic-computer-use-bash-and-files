@@ -57,61 +57,64 @@ const formatTimestamp = (date: Date): string => {
 <style scoped>
 .message {
   width: 100%;
+  max-width: 85%;
+  margin: 8px auto;
   word-wrap: break-word;
-  max-width: 80%;
+}
+
+.message.user {
+  margin-left: auto;
+}
+
+.message.assistant {
+  margin-right: auto;
 }
 
 .message-content {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 12px 16px;
-  border-radius: 16px;
-  width: 100%;
-  box-sizing: border-box;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 20px;
+  background: white;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   transition: all 0.2s ease;
-}
-
-.message-text {
-  font-size: 1rem;
-  line-height: 1.5;
-}
-
-.message-timestamp {
-  font-size: 0.75rem;
-  opacity: 0.7;
-  margin-top: 4px;
-}
-
-.message-error {
-  color: #dc3545;
-  font-size: 0.875rem;
-  margin-top: 4px;
-}
-
-.message.user {
-  align-self: flex-end;
-}
-
-.message.assistant {
-  align-self: flex-start;
 }
 
 .user .message-content {
   background: linear-gradient(135deg, #0056b3, #007AFF);
   color: white;
-  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.15);
+  box-shadow: 0 4px 15px rgba(0, 122, 255, 0.15);
 }
 
 .assistant .message-content {
-  background: #f8f9fa;
-  color: #2c3e50;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  background: linear-gradient(135deg, #ffffff, #f8f9fa);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.message-text {
+  font-size: 1rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.message-timestamp {
+  font-size: 0.75rem;
+  opacity: 0.7;
+  align-self: flex-end;
+}
+
+.message-error {
+  color: #dc3545;
+  font-size: 0.875rem;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(220, 53, 69, 0.1);
 }
 
 @media (max-width: 768px) {
   .message {
-    max-width: 85%;
+    max-width: 90%;
   }
 }
 </style>
