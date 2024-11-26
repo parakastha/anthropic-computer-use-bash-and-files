@@ -42,6 +42,7 @@ const sendMessage = async (message: string) => {
   if (isLoading.value) return
   
   isLoading.value = true
+  isTyping.value = true
   
   messages.value.push({
     role: 'user',
@@ -52,8 +53,6 @@ const sendMessage = async (message: string) => {
   })
 
   try {
-    simulateTyping()
-    
     const response = await fetch('/api/chat', {
       method: 'POST',
       headers: {
@@ -71,6 +70,9 @@ const sendMessage = async (message: string) => {
 
     const data = await response.json()
     
+    // Add a small delay to show typing animation
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
     if (!sessionId.value) {
       sessionId.value = data.sessionId
     }
@@ -86,12 +88,15 @@ const sendMessage = async (message: string) => {
         textResponse: data.response,
         ...(data.uiComponent?.type === 'contactForm' && {
           onSubmit: (formData: any) => {
-            console.log('Contact form submitted:', formData);
-            handleDynamicSubmit(formData);
+            console.log('Contact form submitted:', formData)
+            handleDynamicSubmit(formData)
           }
         })
       }
     })
+
+    // Add a small delay before removing typing indicator
+    await new Promise(resolve => setTimeout(resolve, 300))
   } catch (error) {
     messages.value.push({
       role: 'assistant',
@@ -106,6 +111,7 @@ const sendMessage = async (message: string) => {
       }
     })
   } finally {
+    isTyping.value = false
     isLoading.value = false
   }
 }
@@ -156,6 +162,7 @@ onMounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
+  overflow: hidden;
 }
 
 .chat-container {
@@ -167,7 +174,6 @@ onMounted(() => {
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
   position: relative;
   margin: 0 auto;
   flex-shrink: 0;
@@ -179,6 +185,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   position: relative;
+  overflow: hidden;
   height: calc(100% - 70px);
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, rgba(248, 249, 250, 0.5) 100%);
 }

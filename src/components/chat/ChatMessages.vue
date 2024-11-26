@@ -50,7 +50,17 @@ const scrollToBottom = () => {
 watch(() => props.messages.length, scrollToBottom)
 watch(() => props.isTyping, scrollToBottom)
 
-onMounted(scrollToBottom)
+onMounted(() => {
+  scrollToBottom()
+  // Add MutationObserver to watch for new messages
+  const observer = new MutationObserver(scrollToBottom)
+  if (messagesContainer.value) {
+    observer.observe(messagesContainer.value, {
+      childList: true,
+      subtree: true
+    })
+  }
+})
 </script>
 
 <style scoped>
@@ -67,6 +77,8 @@ onMounted(scrollToBottom)
   max-width: 800px;
   margin: 0 auto;
   width: 100%;
+  scroll-behavior: smooth;
+  height: 100%;
 }
 
 .chat-messages::-webkit-scrollbar {
@@ -91,29 +103,40 @@ onMounted(scrollToBottom)
   align-self: flex-start;
   max-width: 85%;
   margin-left: 20px;
+  opacity: 0.9;
 }
 
 .typing-indicator {
   display: flex;
-  gap: 4px;
-  padding: 12px 16px;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 20px;
   background: linear-gradient(135deg, #ffffff, #f8f9fa);
-  border-radius: 20px;
+  border-radius: 16px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
+.typing-indicator::before {
+  content: "Xuno is thinking";
+  color: #666;
+  font-size: 0.9rem;
+  margin-right: 4px;
+}
+
 .typing-indicator span {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   background: #007AFF;
   border-radius: 50%;
   animation: bounce 1.4s infinite ease-in-out;
   opacity: 0.7;
+  display: inline-block;
 }
 
 .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
 .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0s; }
 
 @keyframes bounce {
   0%, 80%, 100% { 
@@ -136,5 +159,20 @@ onMounted(scrollToBottom)
     margin-left: 16px;
     max-width: 90%;
   }
+}
+
+.message {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.message-enter-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.message-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
 }
 </style>

@@ -6,12 +6,19 @@
         v-model="inputValue" 
         @keydown.enter.prevent="handleSubmit"
         placeholder="Type your message..."
-        rows="3"
+        rows="1"
         :disabled="isLoading"
       ></textarea>
       <button @click="handleSubmit" :disabled="!inputValue.trim() || isLoading">
-        <span v-if="!isLoading">Send</span>
-        <span v-else>Sending...</span>
+        <template v-if="isLoading">
+          <span>Thinking</span>
+          <div class="loading-dots">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </template>
+        <span v-else>Send</span>
       </button>
     </div>
   </div>
@@ -104,6 +111,8 @@ textarea:focus {
 textarea:disabled {
   opacity: 0.7;
   cursor: not-allowed;
+  background: #f1f3f5;
+  border-color: #dee2e6;
 }
 
 button {
@@ -121,6 +130,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
 }
 
 button:hover:not(:disabled) {
@@ -139,6 +149,29 @@ button:disabled {
   cursor: not-allowed;
   opacity: 0.7;
   box-shadow: none;
+}
+
+.loading-dots {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.loading-dots span {
+  width: 4px;
+  height: 4px;
+  background: currentColor;
+  border-radius: 50%;
+  animation: loadingDots 1.4s infinite ease-in-out;
+  opacity: 0.7;
+}
+
+.loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+.loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes loadingDots {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
 }
 
 @media (max-width: 768px) {

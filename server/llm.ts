@@ -174,6 +174,20 @@ For other questions, you can provide helpful responses while staying within your
   });
   session.lastUpdated = new Date();
 
+  // Add to the response processing
+  if (responseText.toLowerCase().includes('frequently asked questions') || 
+      responseText.match(/^\d+\.\s+/m) ||
+      responseText.includes('Q:')) { // Also match Q: format
+    return {
+      response: responseText,
+      sessionId,
+      uiComponent: {
+        type: 'faq',
+        text: responseText
+      }
+    }
+  }
+
   return {
     response: responseText,
     sessionId,
@@ -181,7 +195,7 @@ For other questions, you can provide helpful responses while staying within your
       type: 'text',
       text: responseText
     }
-  };
+  }
 }
 
 // Store sessions in memory
